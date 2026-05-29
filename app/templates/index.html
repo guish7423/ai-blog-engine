@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Blog Engine — SEO Blog Posts in 30 Seconds</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>✍️ AI Blog Engine</h1>
+    <p class="subtitle">Generate SEO-optimized blog posts with AI. <strong>10x your content output.</strong></p>
+    <div class="badge">🚀 $1.99/post • Pay as You Go</div>
+  </header>
+
+  <section class="generator">
+    <form id="blogForm">
+      <div class="form-group">
+        <label for="keyword">🎯 Primary Keyword</label>
+        <input type="text" id="keyword" name="keyword" placeholder="e.g., AI content marketing tools" required>
+      </div>
+      <div class="form-group">
+        <label for="topic">📝 Topic (optional)</label>
+        <input type="text" id="topic" name="topic" placeholder="e.g., How AI is transforming content marketing in 2026">
+      </div>
+      <div class="form-group">
+        <label for="word_count">📏 Length</label>
+        <select id="word_count" name="word_count">
+          <option value="800">Quick (~800 words)</option>
+          <option value="1500" selected>Standard (~1,500 words)</option>
+          <option value="2500">Deep Dive (~2,500 words)</option>
+          <option value="4000">Ultimate Guide (~4,000 words)</option>
+        </select>
+      </div>
+      <button type="submit" id="generateBtn">🚀 Generate Blog Post</button>
+    </form>
+    <div id="loading" class="hidden">
+      <div class="spinner"></div>
+      <p>Generating... (~30-60 seconds)</p>
+    </div>
+  </section>
+
+  <section id="result" class="hidden">
+    <div class="result-meta">
+      <span id="wordCount"></span>
+      <span id="readTime"></span>
+      <span id="cost"></span>
+    </div>
+    <div class="result-actions">
+      <button onclick="copyHTML()">📋 Copy HTML</button>
+      <button onclick="downloadMarkdown()">📥 Download MD</button>
+    </div>
+    <div id="blogContent" class="blog-output"></div>
+  </section>
+
+  <section class="pricing">
+    <h2>Simple Pricing</h2>
+    <div class="pricing-grid">
+      <div class="plan">
+        <h3>⚡ Pay As You Go</h3>
+        <div class="price">$1.99</div>
+        <p>per post</p>
+        <ul>
+          <li>SEO-optimized titles & meta</li>
+          <li>1,500+ words of content</li>
+          <li>FAQ section included</li>
+          <li>HTML export</li>
+        </ul>
+      </div>
+      <div class="plan featured">
+        <h3>🌟 Monthly</h3>
+        <div class="price">$29.99</div>
+        <p>20 posts/month ($1.50/post)</p>
+        <ul>
+          <li>Everything in PayG</li>
+          <li>Bulk generation</li>
+          <li>Priority queue</li>
+          <li>API access</li>
+        </ul>
+        <div class="popular">Best Value</div>
+      </div>
+      <div class="plan">
+        <h3>🏢 Annual</h3>
+        <div class="price">$249.99</div>
+        <p>240 posts/year ($1.04/post)</p>
+        <ul>
+          <li>Everything in Monthly</li>
+          <li>Custom tone of voice</li>
+          <li>White-label export</li>
+          <li>Dedicated support</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Powered by NVIDIA Llama 3.1 8B • Built for SMBs & Content Marketers</p>
+  </footer>
+</div>
+
+<script>
+document.getElementById('blogForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('generateBtn');
+  const loading = document.getElementById('loading');
+  const result = document.getElementById('result');
+  btn.disabled = true; btn.textContent = '⏳ Generating...';
+  loading.classList.remove('hidden');
+  result.classList.add('hidden');
+
+  try {
+    const res = await fetch('/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        keyword: document.getElementById('keyword').value,
+        topic: document.getElementById('topic').value,
+        word_count: parseInt(document.getElementById('word_count').value),
+      })
+    });
+    const data = await res.json();
+    document.getElementById('wordCount').textContent = `📝 ${data.word_count} words`;
+    document.getElementById('readTime').textContent = `⏱ ${data.read_time} min read`;
+    document.getElementById('cost').textContent = `💰 $${data.usage?.cost_usd?.toFixed(4) || '0.0000'}`;
+    document.getElementById('blogContent').innerHTML = data.content_html;
+    result.classList.remove('hidden');
+  } catch (err) {
+    alert('Generation failed: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '🚀 Generate Blog Post';
+    loading.classList.add('hidden');
+  }
+};
+
+function copyHTML() {
+  const html = document.getElementById('blogContent').innerHTML;
+  navigator.clipboard.writeText(`<article>\n${html}\n</article>`);
+  alert('Copied!');
+}
+
+function downloadMarkdown() {
+  const text = document.getElementById('blogContent').innerText;
+  const blob = new Blob([text], {type: 'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'blog-post.md';
+  a.click();
+}
+</script>
+</body>
+</html>
