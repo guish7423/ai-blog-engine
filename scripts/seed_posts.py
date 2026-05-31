@@ -1,17 +1,20 @@
 """Seed blog posts with rich demo content.
 
 Usage:
-    python scripts/seed_posts.py          # append
-    python scripts/seed_posts.py --fresh   # drop & recreate
+    python scripts/seed_posts.py              # append (static posts)
+    python scripts/seed_posts.py --fresh       # drop & recreate (static)
+    python scripts/seed_posts.py --llm         # generate 20 posts via real LLM
+    python scripts/seed_posts.py --llm N       # generate N posts via real LLM
 """
 
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.database import get_connection, init_db, get_post_by_slug, save_post
-from app.generator import BlogPost
+from app.generator import BlogPost, generate as generate_post
 
 
 POSTS = [
@@ -234,5 +237,63 @@ def run(fresh: bool = False):
     print(f"\n✨ Done! {saved} new posts saved. Total: {total} posts in database.")
 
 
+LLM_TOPICS = [
+    "AI Agent SaaS platform for Chinese entrepreneurs going global",
+    "中国 SaaS 出海产品本地化最佳实践",
+    "How to use AI content marketing for B2B lead generation",
+    "Cross-border payment integration for SaaS platforms",
+    "Building multilingual customer support with AI agents",
+    "SaaS startup architecture from zero to production",
+    "Technical SEO guide for AI-powered content sites",
+    "AI translation vs human translation cost analysis",
+    "Docker Compose production deployment for Python FastAPI",
+    "Machine learning model deployment best practices",
+    "Building a blog engine with FastAPI and SQLite",
+    "Chart.js dashboard visualization for SaaS metrics",
+    "AI-powered social media management automation",
+    "HTMX real-time dashboard patterns for admin panels",
+    "DeepSeek API integration for Chinese AI applications",
+    "从零搭建 AI 内容工厂：完整技术栈",
+    "Cross-border ecommerce AI customer service guide",
+    "SaaS pricing psychology: freemium to enterprise tiers",
+    "LLM fine-tuning vs prompt engineering cost comparison",
+    "AI startup remote team management in the AI era",
+]
+
+
+def run_llm(count: int = 20):
+    """Generate posts using real LLM."""
+    from app.config import settings as cfg
+    if not any([cfg.llm_api_key, os.environ.get("DEEPSEEK_API_KEY"),
+                os.environ.get("LLM_API_KEY")]):
+        print("❌ No LLM API key found. Set DEEPSEEK_API_KEY or LLM_API_KEY.")
+        sys.exit(1)
+
+    topics = LLM_TOPICS[:count]
+    saved = 0
+    for topic in topics:
+        slug_part = topic.lower().replace(" ", "-")[:60]
+        existing = get_post_by_slug(slug_part)
+        if existing:
+            print(f"  ⏭️  Exists: {topic[:50]}")
+            continue
+        try:
+            post = generate_post(keyword=topic, word_count=1500)
+            save_post(post)
+            saved += 1
+            print(f"  ✅ ({saved}/{len(topics)}) {post.title[:60]}")
+        except Exception as e:
+            print(f"  ❌ Failed: {topic[:50]} — {e}")
+
+    from app.database import get_post_count
+    total = get_post_count()
+    print(f"\n✨ LLM seed done! {saved} new posts. Total: {total}")
+
+
 if __name__ == "__main__":
-    run(fresh="--fresh" in sys.argv)
+    if "--llm" in sys.argv:
+        idx = sys.argv.index("--llm")
+        n = int(sys.argv[idx + 1]) if idx + 1 < len(sys.argv) and sys.argv[idx + 1].isdigit() else 20
+        run_llm(n)
+    else:
+        run(fresh="--fresh" in sys.argv)

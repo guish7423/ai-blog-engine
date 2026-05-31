@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 *.db
+!content_bridge.db
 venv/
 __pycache__/
 __pycache__/

@@ -14,7 +14,7 @@ class Settings:
     supports_json_mode: bool = False
 
     def __post_init__(self):
-        key = os.getenv("LLM_API_KEY", "")
+        key = os.getenv("LLM_API_KEY", "") or os.getenv("DEEPSEEK_API_KEY", "")
         if key:
             self.llm_api_key = key
             self.llm_api_base_url = os.getenv("LLM_API_BASE_URL", "https://api.deepseek.com/v1")
