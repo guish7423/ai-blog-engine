@@ -136,6 +136,19 @@ async def blog_detail(slug: str, request: Request):
     })
 
 
+@app.get("/api/posts/popular")
+async def api_popular():
+    posts = get_popular_posts(limit=6)
+    return [{
+        "title": p["title"],
+        "slug": p["slug"],
+        "meta_description": p.get("meta_description", ""),
+        "tags": p.get("tags", []),
+        "estimated_read_minutes": p.get("estimated_read_minutes", 3),
+        "view_count": p.get("view_count", 0),
+    } for p in posts]
+
+
 @app.get("/popular", response_class=HTMLResponse)
 async def popular_posts(request: Request):
     popular = get_popular_posts(limit=10)

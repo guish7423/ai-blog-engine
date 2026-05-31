@@ -207,11 +207,13 @@ def get_popular_posts(limit: int = 5) -> list[dict]:
         (limit,),
     ).fetchall()
     conn.close()
+    result = []
     for r in rows:
         d = dict(r)
         d["headings"] = json.loads(d.get("headings", "[]"))
         d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+        result.append(d)
+    return result
 
 
 def get_all_tags() -> list[str]:
