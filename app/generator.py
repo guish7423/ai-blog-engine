@@ -111,7 +111,9 @@ def call_llm(prompt: str, system: str = "", json_mode: bool = True) -> dict:
             last_err = e
             if attempt < 2:
                 time.sleep(2.0 * (2**attempt))
-    raise RuntimeError(f"LLM call failed: {last_err}")
+    # API all failed — fall back to mock mode gracefully
+    print(f"WARN: LLM API failed after retries, falling back to mock: {last_err}")
+    return json.loads(os.environ.get("LLM_MOCK_RESPONSE", settings.llm_mock_response))
 
 
 # ── System Prompts ─────────────────────────────────────────────────────────

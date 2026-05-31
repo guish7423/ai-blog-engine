@@ -38,10 +38,8 @@ class Settings:
             self.supports_json_mode = False
             return
 
-        self.llm_api_key = "ollama"
-        self.llm_api_base_url = "http://localhost:11434/v1"
-        self.llm_model = "qwen2.5:3b"
-        self.supports_json_mode = False
+        # No API key configured → auto-enable mock mode
+        self.llm_api_mock = True
 
     # LLM
     llm_api_mock: bool = field(default_factory=lambda: os.getenv("LLM_API_MOCK", "false").lower() in ("true", "1"))
