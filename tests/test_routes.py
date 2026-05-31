@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 os.environ["LLM_API_MOCK"] = "true"
 os.environ["LLM_MOCK_RESPONSE"] = '{"result":"mock"}'
 
-from app.database import init_db, save_post  # noqa: E402
+from app.database import init_db, init_newsletter, save_post  # noqa: E402
 from app.generator import BlogPost  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -19,6 +19,7 @@ def _patch_db(monkeypatch, tmp_path):
     test_db = tmp_path / "test.db"
     monkeypatch.setattr("app.database.DB_PATH", test_db)
     init_db()
+    init_newsletter()
 
 
 @pytest.fixture
@@ -127,3 +128,40 @@ def test_usage_endpoint():
     assert resp.status_code == 200
     data = resp.json()
     assert "calls" in data
+
+
+def test_sitemap_xml():
+    resp = client.get("/sitemap.xml")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/xml"
+    assert "urlset" in resp.text
+    assert "blog.crosswave.app" in resp.text
+
+
+def test_rss_feed():
+    resp = client.get("/feed.xml")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] in ("application/rss+xml", "text/plain")
+    assert "rss" in resp.text
+    assert "CrossWave Blog" in resp.text
+
+
+def test_subscribe_success():
+    resp = client.post("/subscribe", data={"email": "test@example.com"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["ok"] is True
+
+
+def test_subscribe_duplicate():
+    client.post("/subscribe", data={"email": "dup@example.com"})
+    resp = client.post("/subscribe", data={"email": "dup@example.com"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["ok"] is True
+    assert "Already" in data["message"]
+
+
+def test_subscribe_invalid_email():
+    resp = client.post("/subscribe", data={"email": "not-an-email"})
+    assert resp.status_code == 400

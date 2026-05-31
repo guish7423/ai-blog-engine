@@ -3,13 +3,24 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from html import escape
+
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from app.database import get_all_posts, get_post_by_slug, get_post_count, init_db, save_post
+from app.database import (
+    get_all_posts,
+    get_all_posts_for_feed,
+    get_post_by_slug,
+    get_post_count,
+    init_db,
+    init_newsletter,
+    save_post,
+    save_subscriber,
+)
 from app.generator import generate, usage
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -18,6 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    init_newsletter()
     yield
 
 
@@ -96,6 +108,58 @@ async def blog_detail(slug: str, request: Request):
 @app.get("/usage")
 async def usage_endpoint():
     return usage.summary()
+
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    posts = get_all_posts_for_feed(limit=500)
+    urls = '<url><loc>https://blog.crosswave.app/</loc><priority>1.0</priority></url>'
+    urls += '<url><loc>https://blog.crosswave.app/blog</loc><priority>0.9</priority></url>'
+    for p in posts:
+        urls += f'<url><loc>https://blog.crosswave.app/blog/{escape(p["slug"])}</loc><lastmod>{p["created_at"][:10]}</lastmod><priority>0.8</priority></url>'
+    return Response(
+        content=f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>',
+        media_type="application/xml",
+    )
+
+
+@app.get("/feed.xml")
+async def rss_feed():
+    posts = get_all_posts_for_feed(limit=20)
+    items = ""
+    for p in posts:
+        items += f"""
+    <item>
+      <title>{escape(p["title"])}</title>
+      <link>https://blog.crosswave.app/blog/{escape(p["slug"])}</link>
+      <description>{escape(p["meta_description"])}</description>
+      <pubDate>{p["created_at"]}</pubDate>
+      <guid>https://blog.crosswave.app/blog/{escape(p["slug"])}</guid>
+    </item>"""
+    return Response(
+        content=f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>CrossWave Blog</title>
+    <link>https://blog.crosswave.app</link>
+    <description>AI-powered insights on content marketing, SaaS, and technology</description>
+    <language>en-us</language>
+    <atom:link href="https://blog.crosswave.app/feed.xml" rel="self" type="application/rss+xml"/>
+    {items}
+  </channel>
+</rss>""",
+        media_type="application/rss+xml",
+    )
+
+
+@app.post("/subscribe")
+async def subscribe(email: str = Form(...)):
+    if not email or "@" not in email:
+        raise HTTPException(400, "Valid email is required")
+    ok = save_subscriber(email.strip().lower())
+    if ok:
+        return {"ok": True, "message": "Subscribed!"}
+    return {"ok": True, "message": "Already subscribed"}
 
 
 @app.get("/pricing", response_class=HTMLResponse)

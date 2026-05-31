@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blog — AI Blog Engine</title>
+<title>Blog — AI Content Marketing Insights | CrossWave</title>
+<meta name="description" content="Expert insights on AI-powered content marketing, SEO strategy, and SaaS growth. Learn how to leverage AI for your content strategy.">
+<meta property="og:title" content="CrossWave Blog — AI Content Marketing">
+<meta property="og:description" content="Expert insights on AI-powered content marketing, SEO strategy, and SaaS growth.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://blog.crosswave.app/blog">
+<link rel="alternate" type="application/rss+xml" title="CrossWave Blog RSS" href="/feed.xml">
 <link rel="stylesheet" href="/static/style.css">
 <style>
   .blog-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
@@ -23,6 +29,13 @@
   .pagination a:hover { text-decoration: underline; }
   .empty { text-align: center; padding: 4rem 2rem; color: #888; }
   .empty a { color: #6366f1; }
+  .newsletter { background: #1e1e2e; border-radius: 12px; padding: 2rem; margin: 2rem 0; text-align: center; }
+  .newsletter h2 { margin: 0 0 .5rem; }
+  .newsletter p { color: #aaa; font-size: .9rem; margin: 0 0 1rem; }
+  .subscribe-form { display: flex; gap: .5rem; max-width: 400px; margin: 0 auto; }
+  .subscribe-form input { flex:1; padding:.7rem 1rem; border-radius:8px; border:1px solid #333; background:#2a2a3e; color:#e0e0e0; font-size:.9rem; }
+  .subscribe-form button { padding:.7rem 1.5rem; border-radius:8px; border:none; background:#6366f1; color:#fff; cursor:pointer; font-weight:600; }
+  .subscribe-form button:hover { background:#4f46e5; }
 </style>
 </head>
 <body>
@@ -70,9 +83,34 @@
   </div>
   {% endif %}
 
+  <section class="newsletter">
+    <h2>📬 Stay Updated</h2>
+    <p>Get the latest AI content marketing insights delivered to your inbox.</p>
+    <form id="subscribeForm" class="subscribe-form">
+      <input type="email" id="emailInput" placeholder="your@email.com" required>
+      <button type="submit">Subscribe</button>
+    </form>
+    <p id="subscribeMsg" style="font-size:.85rem;margin-top:.5rem;"></p>
+  </section>
+
   <footer>
     <p>AI Blog Engine — <a href="/pricing" style="color:#6366f1;">Pricing</a></p>
+    <p style="font-size:.8rem;color:#666;margin-top:.5rem;"><a href="/feed.xml" style="color:#6366f1;">RSS Feed</a></p>
   </footer>
 </div>
+
+<script>
+document.getElementById('subscribeForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('emailInput').value;
+  const msg = document.getElementById('subscribeMsg');
+  try {
+    const res = await fetch('/subscribe', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'email='+encodeURIComponent(email) });
+    const data = await res.json();
+    msg.textContent = data.message;
+    msg.style.color = '#4ade80';
+  } catch { msg.textContent = 'Subscription failed. Try again.'; msg.style.color = '#f87171'; }
+});
+</script>
 </body>
 </html>

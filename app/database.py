@@ -94,3 +94,42 @@ def get_post_count() -> int:
     (count,) = conn.execute("SELECT COUNT(*) FROM blog_posts").fetchone()
     conn.close()
     return count
+
+
+def get_all_posts_for_feed(limit: int = 50) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM blog_posts ORDER BY created_at DESC, id DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+    for r in rows:
+        d = dict(r)
+        d["headings"] = json.loads(d.get("headings", "[]"))
+        d["tags"] = json.loads(d.get("tags", "[]"))
+    return [dict(r) for r in rows]
+
+
+def init_newsletter():
+    conn = get_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            email       TEXT UNIQUE NOT NULL,
+            created_at  TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def save_subscriber(email: str) -> bool:
+    conn = get_connection()
+    try:
+        conn.execute("INSERT INTO newsletter_subscribers (email) VALUES (?)", (email,))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
