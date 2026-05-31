@@ -154,7 +154,7 @@ def generate(keyword: str, topic: str = "", word_count: int = 1500) -> BlogPost:
     outline = call_llm(prompt, OUTLINE_SYSTEM)
 
     title = outline.get("title", f"Complete Guide to {keyword}")
-    slug = outline.get("slug", keyword.lower().replace(" ", "-")[:80])
+    slug = keyword.lower().replace(" ", "-")[:80]
     meta_desc = outline.get("meta_description", f"Learn everything about {keyword} - complete guide")
     headings = outline.get("headings", ["Introduction", "Key Benefits", "How It Works", "Best Practices", "FAQ"])
     questions = outline.get("faq_questions", [f"What is {keyword}?", f"How does {keyword} work?"])
