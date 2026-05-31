@@ -43,7 +43,7 @@ class Settings:
 
     # LLM
     llm_api_mock: bool = field(default_factory=lambda: os.getenv("LLM_API_MOCK", "false").lower() in ("true", "1"))
-    llm_mock_response: str = field(default_factory=lambda: os.getenv("LLM_MOCK_RESPONSE", '{"result":"mock"}'))
+    llm_mock_response: str = field(default_factory=lambda: os.getenv("LLM_MOCK_RESPONSE", '{"title":"Complete Guide to {keyword}","slug":"{keyword}","meta_description":"Learn everything about {keyword} in this comprehensive guide.","headings":["Introduction","Key Benefits","How It Works","Best Practices","Case Studies"],"faq_questions":["What is {keyword}?","How does {keyword} work?","Why is {keyword} important?"],"tags":["{keyword}","AI","guide"],"sections":[{"heading":"Introduction","content_html":"<p>'+'x'*500+'</p>"},{"heading":"Key Benefits","content_html":"<p>'+'x'*500+'</p>"},{"heading":"How It Works","content_html":"<p>'+'x'*500+'</p>"},{"heading":"Best Practices","content_html":"<p>'+'x'*500+'</p>"}],"faq":[{"question":"What is this topic?","answer":"This is a comprehensive guide covering all aspects."}],"word_count":2000}'))
 
     # Pricing
     price_per_post: float = 1.99  # $ per generated post (pay-as-you-go)
