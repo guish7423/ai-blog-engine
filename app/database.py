@@ -123,6 +123,68 @@ def init_newsletter():
     conn.close()
 
 
+def search_posts(keyword: str, limit: int = 20) -> list[dict]:
+    conn = get_connection()
+    pattern = f"%{keyword}%"
+    rows = conn.execute(
+        "SELECT * FROM blog_posts WHERE title LIKE ? OR meta_description LIKE ? OR tags LIKE ? ORDER BY created_at DESC, id DESC LIMIT ?",
+        (pattern, pattern, pattern, limit),
+    ).fetchall()
+    conn.close()
+    for r in rows:
+        d = dict(r)
+        d["headings"] = json.loads(d.get("headings", "[]"))
+        d["tags"] = json.loads(d.get("tags", "[]"))
+    return [dict(r) for r in rows]
+
+
+def get_posts_by_tag(tag: str, limit: int = 20) -> list[dict]:
+    conn = get_connection()
+    pattern = f"%{tag}%"
+    rows = conn.execute(
+        "SELECT * FROM blog_posts WHERE tags LIKE ? ORDER BY created_at DESC, id DESC LIMIT ?",
+        (pattern, limit),
+    ).fetchall()
+    conn.close()
+    for r in rows:
+        d = dict(r)
+        d["headings"] = json.loads(d.get("headings", "[]"))
+        d["tags"] = json.loads(d.get("tags", "[]"))
+    return [dict(r) for r in rows]
+
+
+def get_related_posts(slug: str, tags: list[str], limit: int = 3) -> list[dict]:
+    if not tags:
+        return []
+    conn = get_connection()
+    clauses = " OR ".join(["tags LIKE ?" for _ in tags])
+    params = [slug] + [f"%{t}%" for t in tags]
+    rows = conn.execute(
+        f"SELECT * FROM blog_posts WHERE slug != ? AND ({clauses}) ORDER BY created_at DESC, id DESC LIMIT ?",
+        (*params, limit),
+    ).fetchall()
+    conn.close()
+    for r in rows:
+        d = dict(r)
+        d["headings"] = json.loads(d.get("headings", "[]"))
+        d["tags"] = json.loads(d.get("tags", "[]"))
+    return [dict(r) for r in rows]
+
+
+def get_all_tags() -> list[str]:
+    conn = get_connection()
+    rows = conn.execute("SELECT tags FROM blog_posts").fetchall()
+    conn.close()
+    seen = set()
+    tags = []
+    for r in rows:
+        for t in json.loads(r["tags"]):
+            if t not in seen:
+                seen.add(t)
+                tags.append(t)
+    return sorted(tags)
+
+
 def save_subscriber(email: str) -> bool:
     conn = get_connection()
     try:

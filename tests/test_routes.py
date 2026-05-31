@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 os.environ["LLM_API_MOCK"] = "true"
 os.environ["LLM_MOCK_RESPONSE"] = '{"result":"mock"}'
 
-from app.database import init_db, init_newsletter, save_post  # noqa: E402
+from app.database import get_all_tags, init_db, init_newsletter, save_post  # noqa: E402
 from app.generator import BlogPost  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -66,7 +66,7 @@ def test_pricing_page():
 def test_blog_list_empty():
     resp = client.get("/blog")
     assert resp.status_code == 200
-    assert "No posts yet" in resp.text
+    assert "No posts found" in resp.text
 
 
 def test_blog_list_with_posts(seeded):
@@ -165,3 +165,51 @@ def test_subscribe_duplicate():
 def test_subscribe_invalid_email():
     resp = client.post("/subscribe", data={"email": "not-an-email"})
     assert resp.status_code == 400
+
+
+def test_blog_list_with_tag_filter(seeded):
+    resp = client.get("/blog?tag=test")
+    assert resp.status_code == 200
+    assert "Seeded Post" in resp.text
+
+
+def test_blog_list_with_tag_no_match(seeded):
+    resp = client.get("/blog?tag=nonexistent")
+    assert resp.status_code == 200
+    assert "No posts found" in resp.text
+
+
+def test_blog_list_with_search(seeded):
+    resp = client.get("/blog?q=Seeded")
+    assert resp.status_code == 200
+    assert "Seeded Post" in resp.text
+
+
+def test_blog_list_with_search_no_match(seeded):
+    resp = client.get("/blog?q=xyznonexistent")
+    assert resp.status_code == 200
+    assert "No posts found" in resp.text
+
+
+def test_blog_detail_has_related(seeded):
+    p2 = BlogPost(
+        title="Related Post",
+        slug="related-post",
+        meta_description="",
+        content_html="<p>Related</p>",
+        headings=[],
+        word_count=10,
+        estimated_read_minutes=1,
+        tags=["test"],
+        faq=[],
+        usage={},
+    )
+    save_post(p2)
+    resp = client.get("/blog/seeded-post")
+    assert resp.status_code == 200
+    assert "Related Post" in resp.text
+
+
+def test_blog_detail_has_tags_section(seeded):
+    resp = client.get("/blog/seeded-post")
+    assert resp.status_code == 200

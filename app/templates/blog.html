@@ -3,113 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blog — AI Content Marketing Insights | CrossWave</title>
-<meta name="description" content="Expert insights on AI-powered content marketing, SEO strategy, and SaaS growth. Learn how to leverage AI for your content strategy.">
-<meta property="og:title" content="CrossWave Blog — AI Content Marketing">
+<title>{% if active_tag %}Posts tagged "{{ active_tag }}" — {% elif keyword %}Search: "{{ keyword }}" — {% endif %}CrossWave Blog</title>
+<meta name="description" content="{% if active_tag %}Browse all posts tagged {{ active_tag }}. {% endif %}Expert insights on AI-powered content marketing, SEO strategy, and SaaS growth.">
+<meta property="og:title" content="{% if active_tag %}#{{ active_tag }} — {% endif %}CrossWave Blog">
 <meta property="og:description" content="Expert insights on AI-powered content marketing, SEO strategy, and SaaS growth.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://blog.crosswave.app/blog">
 <link rel="alternate" type="application/rss+xml" title="CrossWave Blog RSS" href="/feed.xml">
 <link rel="stylesheet" href="/static/style.css">
 <style>
-  .blog-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-  .blog-nav h1 { margin: 0; }
-  .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
-  .blog-card { background: #1e1e2e; border-radius: 12px; padding: 1.5rem; transition: transform .2s, box-shadow .2s; }
+  .blog-layout { display: flex; gap: 2rem; }
+  .blog-main { flex: 1; min-width: 0; }
+  .blog-sidebar { width: 260px; flex-shrink: 0; }
+  .blog-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: .5rem; }
+  .blog-nav h1 { margin: 0; font-size: 1.4rem; }
+  .blog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+  .blog-card { background: #1e1e2e; border-radius: 12px; padding: 1.25rem; transition: transform .2s, box-shadow .2s; }
   .blog-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
-  .blog-card h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
+  .blog-card h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
   .blog-card h2 a { color: #e0e0e0; text-decoration: none; }
   .blog-card h2 a:hover { color: #6366f1; }
-  .blog-card .meta { font-size: .85rem; color: #888; margin-bottom: .75rem; }
-  .blog-card p { color: #aaa; font-size: .9rem; line-height: 1.5; margin: 0 0 .75rem; }
-  .blog-card .tags { display: flex; flex-wrap: wrap; gap: .4rem; }
-  .tag { background: #2a2a3e; color: #aaa; padding: 2px 10px; border-radius: 99px; font-size: .75rem; }
+  .blog-card .meta { font-size: .82rem; color: #888; margin-bottom: .6rem; display: flex; flex-wrap: wrap; gap: .3rem; }
+  .blog-card p { color: #aaa; font-size: .88rem; line-height: 1.5; margin: 0 0 .6rem; }
+  .blog-card .tags { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .tag { background: #2a2a3e; color: #aaa; padding: 2px 10px; border-radius: 99px; font-size: .75rem; text-decoration: none; }
+  .tag:hover { background: #6366f1; color: #fff; }
+  .tag.active { background: #6366f1; color: #fff; }
+  .sidebar-section { background: #1e1e2e; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .sidebar-section h3 { margin: 0 0 .75rem; font-size: .95rem; color: #ccc; }
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .tag-cloud .tag { font-size: .78rem; padding: 3px 12px; }
+  .filter-bar { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+  .search-box { flex: 1; padding: .6rem 1rem; border-radius: 8px; border: 1px solid #333; background: #2a2a3e; color: #e0e0e0; font-size: .9rem; }
+  .filter-btn { padding: .6rem 1rem; border-radius: 8px; border: none; background: #6366f1; color: #fff; cursor: pointer; font-weight: 600; }
+  .filter-btn:hover { background: #4f46e5; }
   .pagination { text-align: center; margin-top: 2rem; }
   .pagination a { color: #6366f1; margin: 0 .5rem; text-decoration: none; }
   .pagination a:hover { text-decoration: underline; }
   .empty { text-align: center; padding: 4rem 2rem; color: #888; }
   .empty a { color: #6366f1; }
-  .newsletter { background: #1e1e2e; border-radius: 12px; padding: 2rem; margin: 2rem 0; text-align: center; }
-  .newsletter h2 { margin: 0 0 .5rem; }
-  .newsletter p { color: #aaa; font-size: .9rem; margin: 0 0 1rem; }
-  .subscribe-form { display: flex; gap: .5rem; max-width: 400px; margin: 0 auto; }
-  .subscribe-form input { flex:1; padding:.7rem 1rem; border-radius:8px; border:1px solid #333; background:#2a2a3e; color:#e0e0e0; font-size:.9rem; }
-  .subscribe-form button { padding:.7rem 1.5rem; border-radius:8px; border:none; background:#6366f1; color:#fff; cursor:pointer; font-weight:600; }
+  .newsletter { background: #1e1e2e; border-radius: 12px; padding: 1.5rem; margin: 2rem 0; text-align: center; }
+  .newsletter h2 { margin: 0 0 .3rem; font-size: 1.1rem; }
+  .newsletter p { color: #aaa; font-size: .85rem; margin: 0 0 .75rem; }
+  .subscribe-form { display: flex; gap: .4rem; max-width: 360px; margin: 0 auto; }
+  .subscribe-form input { flex:1; padding:.6rem 1rem; border-radius:8px; border:1px solid #333; background:#2a2a3e; color:#e0e0e0; font-size:.85rem; }
+  .subscribe-form button { padding:.6rem 1.25rem; border-radius:8px; border:none; background:#6366f1; color:#fff; cursor:pointer; font-weight:600; font-size:.85rem; }
   .subscribe-form button:hover { background:#4f46e5; }
+  .active-tag-badge { display: inline-block; background: #6366f1; color: #fff; padding: 3px 12px; border-radius: 99px; font-size: .8rem; margin-bottom: 1rem; }
+  .active-tag-badge a { color: #fff; margin-left: .5rem; text-decoration: none; font-weight: bold; }
+  @media (max-width: 768px) { .blog-layout { flex-direction: column; } .blog-sidebar { width: 100%; } }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="blog-nav">
     <h1>📝 Published Posts</h1>
-    <a href="/" style="color:#6366f1; text-decoration:none;">← Generator</a>
+    <a href="/" style="color:#6366f1; text-decoration:none;font-size:.9rem;">← Generator</a>
   </div>
 
-  {% if posts %}
-  <div class="blog-grid">
-    {% for post in posts %}
-    <div class="blog-card">
-      <h2><a href="/blog/{{ post.slug }}">{{ post.title }}</a></h2>
-      <div class="meta">
-        <span>{{ post.created_at[:10] }}</span>
-        <span>·</span>
-        <span>{{ post.read_time }} min read</span>
-        <span>·</span>
-        <span>{{ post.word_count }} words</span>
-      </div>
-      <p>{{ post.meta_description[:160] }}</p>
-      <div class="tags">
-        {% for tag in post.tags[:4] %}
-        <span class="tag">{{ tag }}</span>
+  <div class="filter-bar">
+    <form action="/blog" method="get" style="display:flex;gap:.5rem;flex:1;">
+      <input class="search-box" type="text" name="q" placeholder="Search posts..." value="{{ keyword }}" aria-label="Search posts">
+      <button class="filter-btn" type="submit">Search</button>
+      {% if keyword or active_tag %}<a href="/blog" class="filter-btn" style="background:#555;text-decoration:none;">Clear</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="blog-layout">
+    <div class="blog-main">
+      {% if active_tag %}
+      <div class="active-tag-badge">#{{ active_tag }} <a href="/blog">×</a></div>
+      {% endif %}
+      {% if keyword %}
+      <p style="color:#888;margin-bottom:1rem;">Search results for: <strong>"{{ keyword }}"</strong></p>
+      {% endif %}
+
+      {% if posts %}
+      <div class="blog-grid">
+        {% for post in posts %}
+        <div class="blog-card">
+          <h2><a href="/blog/{{ post.slug }}">{{ post.title }}</a></h2>
+          <div class="meta">
+            <span>{{ post.created_at[:10] }}</span>
+            <span>·</span>
+            <span>{{ post.read_time }} min read</span>
+            <span>·</span>
+            <span>{{ post.word_count }} words</span>
+          </div>
+          <p>{{ post.meta_description[:160] }}</p>
+          <div class="tags">
+            {% for tag in post.tags[:4] %}
+            <a href="/blog?tag={{ tag }}" class="tag">{{ tag }}</a>
+            {% endfor %}
+          </div>
+        </div>
         {% endfor %}
       </div>
+
+      {% if not active_tag and not keyword and pages > 1 %}
+      <div class="pagination">
+        {% if page > 1 %}<a href="/blog?page={{ page - 1 }}">← Previous</a>{% endif %}
+        <span style="color:#888;">Page {{ page }} of {{ pages }}</span>
+        {% if page < pages %}<a href="/blog?page={{ page + 1 }}">Next →</a>{% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="empty">
+        <h2>No posts found</h2>
+        <p>{% if keyword %}No results for "{{ keyword }}". Try a different search term.{% else %}Generate your first blog post to see it here.{% endif %}</p>
+        <a href="/">✨ Generate a Post</a>
+      </div>
+      {% endif %}
     </div>
-    {% endfor %}
+
+    <aside class="blog-sidebar">
+      <div class="sidebar-section">
+        <h3>🏷️ Tags</h3>
+        <div class="tag-cloud">
+          {% for tag in all_tags %}
+          <a href="/blog?tag={{ tag }}" class="tag{% if tag == active_tag %} active{% endif %}">{{ tag }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>📡 Subscribe</h3>
+        <p style="font-size:.85rem;color:#888;margin:0 0 .75rem;">Get new posts delivered to your inbox.</p>
+        <form id="sidebarSubscribeForm" style="display:flex;flex-direction:column;gap:.4rem;">
+          <input type="email" id="sidebarEmail" placeholder="your@email.com" required style="padding:.5rem .8rem;border-radius:6px;border:1px solid #333;background:#2a2a3e;color:#e0e0e0;font-size:.82rem;">
+          <button type="submit" style="padding:.5rem;border-radius:6px;border:none;background:#6366f1;color:#fff;cursor:pointer;font-weight:600;font-size:.82rem;">Subscribe</button>
+        </form>
+        <p id="sidebarMsg" style="font-size:.8rem;margin-top:.3rem;"></p>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>📄 Pages</h3>
+        <ul style="list-style:none;padding:0;margin:0;">
+          <li style="margin-bottom:.4rem;"><a href="/" style="color:#888;font-size:.88rem;text-decoration:none;">✨ Generator</a></li>
+          <li style="margin-bottom:.4rem;"><a href="/pricing" style="color:#888;font-size:.88rem;text-decoration:none;">💰 Pricing</a></li>
+          <li><a href="/feed.xml" style="color:#888;font-size:.88rem;text-decoration:none;">📡 RSS Feed</a></li>
+        </ul>
+      </div>
+    </aside>
   </div>
 
-  {% if pages > 1 %}
-  <div class="pagination">
-    {% if page > 1 %}<a href="/blog?page={{ page - 1 }}">← Previous</a>{% endif %}
-    <span style="color:#888;">Page {{ page }} of {{ pages }}</span>
-    {% if page < pages %}<a href="/blog?page={{ page + 1 }}">Next →</a>{% endif %}
-  </div>
-  {% endif %}
-
-  {% else %}
-  <div class="empty">
-    <h2>No posts yet</h2>
-    <p>Generate your first blog post to see it here.</p>
-    <a href="/">✨ Generate a Post</a>
-  </div>
-  {% endif %}
-
-  <section class="newsletter">
-    <h2>📬 Stay Updated</h2>
-    <p>Get the latest AI content marketing insights delivered to your inbox.</p>
-    <form id="subscribeForm" class="subscribe-form">
-      <input type="email" id="emailInput" placeholder="your@email.com" required>
-      <button type="submit">Subscribe</button>
-    </form>
-    <p id="subscribeMsg" style="font-size:.85rem;margin-top:.5rem;"></p>
-  </section>
-
-  <footer>
-    <p>AI Blog Engine — <a href="/pricing" style="color:#6366f1;">Pricing</a></p>
-    <p style="font-size:.8rem;color:#666;margin-top:.5rem;"><a href="/feed.xml" style="color:#6366f1;">RSS Feed</a></p>
+  <footer style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid #2a2a3e;">
+    <p style="font-size:.82rem;color:#666;text-align:center;">AI Blog Engine — <a href="/pricing" style="color:#6366f1;">Pricing</a> · <a href="/feed.xml" style="color:#6366f1;">RSS</a> · <a href="https://crosswave.app" style="color:#6366f1;">CrossWave</a></p>
   </footer>
 </div>
 
 <script>
-document.getElementById('subscribeForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('emailInput').value;
-  const msg = document.getElementById('subscribeMsg');
-  try {
-    const res = await fetch('/subscribe', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'email='+encodeURIComponent(email) });
-    const data = await res.json();
-    msg.textContent = data.message;
-    msg.style.color = '#4ade80';
-  } catch { msg.textContent = 'Subscription failed. Try again.'; msg.style.color = '#f87171'; }
+[].forEach.call(document.querySelectorAll('#subscribeForm, #sidebarSubscribeForm'), function(form) {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = form.querySelector('input[type="email"]');
+    const msg = form.querySelector('[id$="Msg"]');
+    try {
+      const res = await fetch('/subscribe', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'email='+encodeURIComponent(input.value) });
+      const data = await res.json();
+      msg.textContent = data.message;
+      msg.style.color = '#4ade80';
+    } catch { msg.textContent = 'Subscription failed.'; msg.style.color = '#f87171'; }
+  });
 });
 </script>
 </body>

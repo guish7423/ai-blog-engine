@@ -8,12 +8,16 @@ import pytest
 
 from app.database import (
     DB_PATH,
-    get_connection,
     get_all_posts,
+    get_all_tags,
+    get_connection,
     get_post_by_slug,
     get_post_count,
+    get_posts_by_tag,
+    get_related_posts,
     init_db,
     save_post,
+    search_posts,
 )
 from app.generator import BlogPost
 
@@ -111,3 +115,86 @@ def test_get_all_posts_limit():
 
     posts = get_all_posts(limit=3)
     assert len(posts) == 3
+
+
+def test_search_posts():
+    p2 = BlogPost(
+        title="Second Article",
+        slug="second-article",
+        meta_description="",
+        content_html="<p>2</p>",
+        headings=[],
+        word_count=10,
+        estimated_read_minutes=1,
+        tags=["ai", "marketing"],
+        faq=[],
+        usage={},
+    )
+    save_post(SAMPLE)
+    save_post(p2)
+
+    results = search_posts("Second")
+    assert len(results) == 1
+    assert results[0]["slug"] == "second-article"
+
+    results = search_posts("test")
+    assert len(results) == 1
+    assert results[0]["slug"] == "test-post"
+
+
+def test_get_posts_by_tag():
+    p2 = BlogPost(
+        title="Tagged Post",
+        slug="tagged-post",
+        meta_description="",
+        content_html="<p>tagged</p>",
+        headings=[],
+        word_count=10,
+        estimated_read_minutes=1,
+        tags=["ai", "ml"],
+        faq=[],
+        usage={},
+    )
+    save_post(SAMPLE)  # tags=["test"]
+    save_post(p2)
+
+    results = get_posts_by_tag("ai")
+    assert len(results) == 1
+    assert results[0]["slug"] == "tagged-post"
+
+    results = get_posts_by_tag("test")
+    assert len(results) == 1
+
+
+def test_get_related_posts():
+    p1 = BlogPost(title="A", slug="a", meta_description="", content_html="<p>a</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["tag1"], faq=[], usage={})
+    p2 = BlogPost(title="B", slug="b", meta_description="", content_html="<p>b</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["tag1", "tag2"], faq=[], usage={})
+    p3 = BlogPost(title="C", slug="c", meta_description="", content_html="<p>c</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["tag2"], faq=[], usage={})
+    save_post(p1)
+    save_post(p2)
+    save_post(p3)
+
+    related = get_related_posts("a", ["tag1", "tag2"])
+    assert len(related) == 2
+    slugs = [r["slug"] for r in related]
+    assert "b" in slugs
+    assert "c" in slugs
+    assert "a" not in slugs
+
+
+def test_get_all_tags():
+    p1 = BlogPost(title="A", slug="a", meta_description="", content_html="<p>a</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["ai", "ml"], faq=[], usage={})
+    p2 = BlogPost(title="B", slug="b", meta_description="", content_html="<p>b</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["ml", "nlp"], faq=[], usage={})
+    save_post(p1)
+    save_post(p2)
+
+    tags = get_all_tags()
+    assert "ai" in tags
+    assert "ml" in tags
+    assert "nlp" in tags
+    assert len(tags) == 3

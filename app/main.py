@@ -14,12 +14,16 @@ from pydantic import BaseModel
 from app.database import (
     get_all_posts,
     get_all_posts_for_feed,
+    get_all_tags,
     get_post_by_slug,
     get_post_count,
+    get_posts_by_tag,
+    get_related_posts,
     init_db,
     init_newsletter,
     save_post,
     save_subscriber,
+    search_posts,
 )
 from app.generator import generate, usage
 
@@ -86,14 +90,29 @@ async def generate_post(req: GenerateRequest):
 
 
 @app.get("/blog", response_class=HTMLResponse)
-async def blog_list(request: Request, page: int = 1):
-    posts = get_all_posts(limit=20, offset=(page - 1) * 20)
-    total = get_post_count()
+async def blog_list(request: Request, page: int = 1, tag: str = "", q: str = ""):
+    all_tags = get_all_tags()
+    active_tag = tag.strip()
+    keyword = q.strip()
+
+    if active_tag:
+        posts = get_posts_by_tag(active_tag, limit=20)
+        total = len(posts)
+    elif keyword:
+        posts = search_posts(keyword, limit=20)
+        total = len(posts)
+    else:
+        posts = get_all_posts(limit=20, offset=(page - 1) * 20)
+        total = get_post_count()
+
     return templates.TemplateResponse(request, "blog.html", {
         "posts": posts,
         "page": page,
         "total": total,
         "pages": max(1, (total + 19) // 20),
+        "all_tags": all_tags,
+        "active_tag": active_tag,
+        "keyword": keyword,
     })
 
 
@@ -102,7 +121,13 @@ async def blog_detail(slug: str, request: Request):
     post = get_post_by_slug(slug)
     if not post:
         raise HTTPException(404, "Post not found")
-    return templates.TemplateResponse(request, "blog_post.html", {"post": post})
+    related = get_related_posts(slug, post["tags"], limit=3)
+    all_tags = get_all_tags()
+    return templates.TemplateResponse(request, "blog_post.html", {
+        "post": post,
+        "related": related,
+        "all_tags": all_tags,
+    })
 
 
 @app.get("/usage")
