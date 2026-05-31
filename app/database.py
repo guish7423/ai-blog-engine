@@ -31,9 +31,16 @@ def init_db():
             tags        TEXT DEFAULT '[]',
             word_count  INTEGER DEFAULT 0,
             read_time   INTEGER DEFAULT 1,
+            author      TEXT DEFAULT 'CrossWave Team',
+            view_count  INTEGER DEFAULT 0,
             created_at  TEXT DEFAULT (datetime('now'))
         )
     """)
+    for col, coltype in [("author", "TEXT DEFAULT 'CrossWave Team'"), ("view_count", "INTEGER DEFAULT 0")]:
+        try:
+            conn.execute(f"ALTER TABLE blog_posts ADD COLUMN {col} {coltype}")
+        except sqlite3.OperationalError:
+            pass
     conn.commit()
     conn.close()
 
@@ -43,8 +50,8 @@ def save_post(post) -> int:
     conn = get_connection()
     cur = conn.execute(
         """INSERT OR REPLACE INTO blog_posts
-           (title, slug, meta_description, content_html, headings, tags, word_count, read_time)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+           (title, slug, meta_description, content_html, headings, tags, word_count, read_time, author)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             post.title,
             post.slug,
@@ -54,6 +61,7 @@ def save_post(post) -> int:
             json.dumps(post.tags),
             post.word_count,
             post.estimated_read_minutes,
+            post.author,
         ),
     )
     conn.commit()
@@ -162,6 +170,41 @@ def get_related_posts(slug: str, tags: list[str], limit: int = 3) -> list[dict]:
     rows = conn.execute(
         f"SELECT * FROM blog_posts WHERE slug != ? AND ({clauses}) ORDER BY created_at DESC, id DESC LIMIT ?",
         (*params, limit),
+    ).fetchall()
+    conn.close()
+    for r in rows:
+        d = dict(r)
+        d["headings"] = json.loads(d.get("headings", "[]"))
+        d["tags"] = json.loads(d.get("tags", "[]"))
+    return [dict(r) for r in rows]
+
+
+def get_posts_by_author(author: str, limit: int = 20) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM blog_posts WHERE author = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+        (author, limit),
+    ).fetchall()
+    conn.close()
+    for r in rows:
+        d = dict(r)
+        d["headings"] = json.loads(d.get("headings", "[]"))
+        d["tags"] = json.loads(d.get("tags", "[]"))
+    return [dict(r) for r in rows]
+
+
+def increment_view_count(slug: str):
+    conn = get_connection()
+    conn.execute("UPDATE blog_posts SET view_count = view_count + 1 WHERE slug = ?", (slug,))
+    conn.commit()
+    conn.close()
+
+
+def get_popular_posts(limit: int = 5) -> list[dict]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM blog_posts ORDER BY view_count DESC, created_at DESC LIMIT ?",
+        (limit,),
     ).fetchall()
     conn.close()
     for r in rows:

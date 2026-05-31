@@ -213,3 +213,33 @@ def test_blog_detail_has_related(seeded):
 def test_blog_detail_has_tags_section(seeded):
     resp = client.get("/blog/seeded-post")
     assert resp.status_code == 200
+
+
+def test_author_page(seeded):
+    # seeded post uses default author "CrossWave Team"
+    resp = client.get("/author/CrossWave%20Team")
+    assert resp.status_code == 200
+    assert "Seeded Post" in resp.text
+
+
+def test_author_page_no_posts():
+    resp = client.get("/author/Unknown")
+    assert resp.status_code == 200
+    assert "No articles" in resp.text
+
+
+def test_popular_endpoint(seeded):
+    # Visit detail 3 times to boost view count
+    for _ in range(3):
+        client.get("/blog/seeded-post")
+    resp = client.get("/popular")
+    assert resp.status_code == 200
+    assert "Seeded Post" in resp.text
+
+
+def test_view_count_increments_on_detail(seeded):
+    from app.database import get_post_by_slug
+    before = get_post_by_slug("seeded-post")["view_count"] or 0
+    client.get("/blog/seeded-post")
+    after = get_post_by_slug("seeded-post")["view_count"]
+    assert after >= before + 1

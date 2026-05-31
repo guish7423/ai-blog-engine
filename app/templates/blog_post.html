@@ -100,9 +100,9 @@
       </article>
 
       <div class="author-card">
-        <div class="author-avatar">CW</div>
+        <div class="author-avatar">{{ post.author[:2] }}</div>
         <div class="author-info">
-          <h4>CrossWave Team</h4>
+          <h4><a href="/author/{{ post.author }}" style="color:#ccc;text-decoration:none;">{{ post.author }}</a></h4>
           <p>AI-powered content marketing insights. Helping businesses leverage AI for growth.</p>
         </div>
       </div>
@@ -138,6 +138,14 @@
           <a href="/blog?tag={{ tag }}" class="tag">{{ tag }}</a>
           {% endfor %}
         </div>
+      </div>
+      <div class="sidebar-section">
+        <h3>🔥 Popular</h3>
+        <ol style="list-style:none;padding:0;margin:0;">
+          {% for p in popular %}
+          <li style="margin-bottom:.5rem;font-size:.82rem;"><a href="/blog/{{ p.slug }}" style="color:#aaa;text-decoration:none;">{{ p.title }}</a></li>
+          {% endfor %}
+        </ol>
       </div>
       <div class="sidebar-section">
         <h3>📡 Subscribe</h3>

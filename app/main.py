@@ -15,10 +15,13 @@ from app.database import (
     get_all_posts,
     get_all_posts_for_feed,
     get_all_tags,
+    get_popular_posts,
     get_post_by_slug,
     get_post_count,
+    get_posts_by_author,
     get_posts_by_tag,
     get_related_posts,
+    increment_view_count,
     init_db,
     init_newsletter,
     save_post,
@@ -121,12 +124,44 @@ async def blog_detail(slug: str, request: Request):
     post = get_post_by_slug(slug)
     if not post:
         raise HTTPException(404, "Post not found")
+    increment_view_count(slug)
     related = get_related_posts(slug, post["tags"], limit=3)
     all_tags = get_all_tags()
+    popular = get_popular_posts(limit=5)
     return templates.TemplateResponse(request, "blog_post.html", {
         "post": post,
         "related": related,
         "all_tags": all_tags,
+        "popular": popular,
+    })
+
+
+@app.get("/popular", response_class=HTMLResponse)
+async def popular_posts(request: Request):
+    popular = get_popular_posts(limit=10)
+    all_tags = get_all_tags()
+    return templates.TemplateResponse(request, "blog.html", {
+        "posts": popular,
+        "page": 1,
+        "total": len(popular),
+        "pages": 1,
+        "all_tags": all_tags,
+        "active_tag": "",
+        "keyword": "",
+        "title": "Popular Posts",
+    })
+
+
+@app.get("/author/{name}", response_class=HTMLResponse)
+async def author_page(name: str, request: Request):
+    posts = get_posts_by_author(name)
+    all_tags = get_all_tags()
+    popular = get_popular_posts(limit=5)
+    return templates.TemplateResponse(request, "author.html", {
+        "author_name": name,
+        "posts": posts,
+        "all_tags": all_tags,
+        "popular": popular,
     })
 
 

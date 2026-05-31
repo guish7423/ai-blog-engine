@@ -56,6 +56,14 @@
     <div id="blogContent" class="blog-output"></div>
   </section>
 
+  <section class="recent-posts" style="margin-top:3rem;">
+    <h2>📖 Latest Posts</h2>
+    <div id="recentPosts" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-top:1rem;">
+      <p style="color:#666;text-align:center;grid-column:1/-1;">Loading...</p>
+    </div>
+    <p style="text-align:center;margin-top:1.5rem;"><a href="/blog" style="color:#6366f1;">View All Posts →</a></p>
+  </section>
+
   <section class="pricing">
     <h2>Simple Pricing</h2>
     <div class="pricing-grid">
@@ -102,6 +110,24 @@
 </div>
 
 <script>
+// Load recent posts
+(async () => {
+  try {
+    const res = await fetch('/popular');
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const cards = doc.querySelectorAll('.blog-card');
+    const container = document.getElementById('recentPosts');
+    if (cards.length) {
+      container.innerHTML = '';
+      cards.forEach(c => container.appendChild(c.cloneNode(true)));
+    } else {
+      container.innerHTML = '<p style="color:#666;text-align:center;grid-column:1/-1;">No posts yet. Generate your first one above!</p>';
+    }
+  } catch { /* ignore */ }
+})();
+
 document.getElementById('blogForm').onsubmit = async (e) => {
   e.preventDefault();
   const btn = document.getElementById('generateBtn');

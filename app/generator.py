@@ -22,6 +22,7 @@ class BlogPost:
     tags: list[str]
     faq: list[dict[str, str]]
     usage: dict
+    author: str = "CrossWave Team"
 
 
 @dataclass

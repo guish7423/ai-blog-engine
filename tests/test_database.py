@@ -11,10 +11,13 @@ from app.database import (
     get_all_posts,
     get_all_tags,
     get_connection,
+    get_popular_posts,
     get_post_by_slug,
     get_post_count,
+    get_posts_by_author,
     get_posts_by_tag,
     get_related_posts,
+    increment_view_count,
     init_db,
     save_post,
     search_posts,
@@ -198,3 +201,48 @@ def test_get_all_tags():
     assert "ml" in tags
     assert "nlp" in tags
     assert len(tags) == 3
+
+
+def test_get_posts_by_author():
+    p1 = BlogPost(title="By Alice", slug="alice-1", meta_description="", content_html="<p>a</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=[], faq=[], usage={}, author="Alice")
+    p2 = BlogPost(title="By Bob", slug="bob-1", meta_description="", content_html="<p>b</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=[], faq=[], usage={}, author="Bob")
+    save_post(p1)
+    save_post(p2)
+    alice_posts = get_posts_by_author("Alice")
+    assert len(alice_posts) == 1
+    assert alice_posts[0]["slug"] == "alice-1"
+    assert get_posts_by_author("Nobody") == []
+
+
+def test_increment_view_count():
+    save_post(SAMPLE)
+
+    # Detail page should increment
+    from app.database import increment_view_count, get_post_by_slug
+    post = get_post_by_slug("test-post")
+    assert post["view_count"] == 0
+
+    increment_view_count("test-post")
+    post = get_post_by_slug("test-post")
+    assert post["view_count"] >= 1
+
+    increment_view_count("test-post")
+    post = get_post_by_slug("test-post")
+    assert post["view_count"] >= 2
+
+
+def test_get_popular_posts():
+    p1 = BlogPost(title="Most Viewed", slug="most-viewed", meta_description="", content_html="<p>a</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=[], faq=[], usage={})
+    save_post(p1)
+
+    from app.database import increment_view_count
+    increment_view_count("most-viewed")
+    increment_view_count("most-viewed")
+
+    popular = get_popular_posts(limit=3)
+    assert len(popular) >= 1
+    assert popular[0]["slug"] == "most-viewed"
+    assert popular[0]["view_count"] >= 2
