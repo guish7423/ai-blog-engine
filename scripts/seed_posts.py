@@ -258,6 +258,27 @@ LLM_TOPICS = [
     "SaaS pricing psychology: freemium to enterprise tiers",
     "LLM fine-tuning vs prompt engineering cost comparison",
     "AI startup remote team management in the AI era",
+    # === Round 2: CrossWave ecosystem & operational excellence ===
+    "Building a unified operations HQ with NocoBase and FastAPI",
+    "AI agent orchestration patterns for automated business operations",
+    "如何搭建 AI 自动接单系统：从扫描到交付全流程",
+    "Automated lead nurturing with multi-agent LLM pipelines",
+    "Stripe Checkout integration guide for SaaS platforms in China",
+    "Building a sandbox testing bed for autonomous AI agents",
+    "Model routing gateway design for multi-LLM SaaS platforms",
+    "Real-time business monitoring with Celery Beat and Chart.js",
+    "DeepSeek vs Volc Engine cost comparison for Chinese AI startups",
+    "AI-powered proposal generation for digital service agencies",
+    "Automated deployment delivery pipeline with Docker and Git",
+    "Building a customer portal with FastAPI and Jinja2",
+    "AI agent performance monitoring and evolution office patterns",
+    "Market intelligence automation with multi-source web scraping",
+    "Weekly automated reporting for AI-operated SaaS companies",
+    "Zero-to-revenue AI company: building a fully automated sales funnel",
+    "AI-native CRM: from inquiry to proposal to payment automation",
+    "Running a one-person AI company: tools, stack and workflow",
+    "从个人开发者到 AI 公司：全自动运营系统搭建指南",
+    "CrossWave HQ architecture: unifying agents, orders and finance",
 ]
 
 
