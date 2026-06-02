@@ -1,5 +1,7 @@
 """AI Blog Engine — API + web interface for SEO blog generation."""
 
+import asyncio
+import random
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -32,12 +34,102 @@ from app.generator import generate, usage
 
 BASE_DIR = Path(__file__).resolve().parent
 
+# ── Auto Content Generation Topics ──────────────────────────────────────────
+# Extended topic list covering CrossWave ecosystem + general AI/SaaS topics
+AUTO_TOPICS = [
+    # CrossWave Ecosystem (company blog)
+    "How CrossWave HQ uses AI agents to run a one-person company",
+    "Building a unified HQ dashboard for AI-powered business operations",
+    "From inquiry to deployment: automating the full SaaS delivery pipeline",
+    "How AI agents can automatically scan and evaluate freelance job listings",
+    "Building a sandbox approval system for autonomous AI agent safety",
+    "Implementing model routing for cost-effective multi-LLM agent systems",
+    "CrossWave introduction: AI-native company building platform",
+    "Setting up monitoring and automatic health checks for microservices",
+    "Best practices for AI agent system prompts and task delegation",
+    "Automating weekly business reports with Celery Beat and LLM generation",
+    # AI SaaS & Operations
+    "AI agent architecture patterns for SaaS platforms",
+    "How to build a self-correcting AI agent system with evolution loops",
+    "Multi-tenant vs single-tenant architecture for AI SaaS products",
+    "Stripe integration patterns for SaaS platforms with FastAPI",
+    "Celery task queue best practices for AI agent workloads",
+    "Building a customer-facing proposal portal with real-time status",
+    "HTMX patterns for real-time SaaS dashboards",
+    "Email notification workflows for automated SaaS pipelines",
+    "SQLite database backup strategies for production deployments",
+    "Production deployment checklist for Python FastAPI applications",
+    # Technical SEO & Marketing
+    "Technical SEO guide for AI-powered content management systems",
+    "How structured data (JSON-LD) improves search rankings",
+    "Building topic clusters for SaaS SEO authority",
+    "Sitemap and RSS feed optimization for content websites",
+    "International SEO strategy for bilingual content platforms",
+    "Automated content generation pipelines with LLM APIs",
+    "SEO meta tag optimization for AI-generated content",
+    "Content gap analysis using LLM-powered topic research",
+    # AI & LLM Technology
+    "DeepSeek API integration guide for Python applications",
+    "Comparison of open-source vs commercial LLM APIs for production",
+    "Prompt engineering patterns for structured JSON output from LLMs",
+    "LLM fallback strategies for resilient AI applications",
+    "Model routing: intelligent LLM selection by task type",
+    "Token usage optimization for cost-effective LLM operations",
+    "Async LLM calls: patterns for high-throughput AI applications",
+]
+
+# Track used topics across restarts (persisted via DB slug check)
+_auto_task_running = False
+
+
+async def _auto_generate_loop():
+    """Background task: generate 1-2 new posts daily."""
+    global _auto_task_running
+    if _auto_task_running:
+        return
+    _auto_task_running = True
+    try:
+        while True:
+            # Run once every 24 hours
+            await asyncio.sleep(86400)
+
+            # Find unused topics by checking slug existence
+            unused = []
+            for topic in AUTO_TOPICS:
+                slug = topic.lower().replace(" ", "-")[:60]
+                if not get_post_by_slug(slug):
+                    unused.append(topic)
+
+            if not unused:
+                print("[auto-gen] All topics used. Cycling topics...")
+                # Rotate: use all topics again with new generation
+                unused = list(AUTO_TOPICS)
+
+            # Generate 1-2 posts per cycle
+            count = min(2, len(unused))
+            selected = random.sample(unused, count)
+            for topic in selected:
+                try:
+                    print(f"[auto-gen] Generating: {topic[:60]}...")
+                    post = generate(keyword=topic, word_count=1500)
+                    save_post(post)
+                    print(f"[auto-gen] ✅ {post.title[:60]} ({get_post_count()} total)")
+                except Exception as e:
+                    print(f"[auto-gen] ❌ {topic[:50]} — {e}")
+    except asyncio.CancelledError:
+        pass
+    finally:
+        _auto_task_running = False
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     init_newsletter()
+    # Start auto-generation background task
+    task = asyncio.create_task(_auto_generate_loop())
     yield
+    task.cancel()
 
 
 app = FastAPI(
@@ -151,17 +243,46 @@ async def topic_cluster(tag: str, request: Request):
     })
 
 
-@app.get("/api/posts/popular")
-async def api_popular():
-    posts = get_popular_posts(limit=6)
-    return [{
+def _post_to_json(p: dict) -> dict:
+    return {
         "title": p["title"],
         "slug": p["slug"],
         "meta_description": p.get("meta_description", ""),
         "tags": p.get("tags", []),
         "estimated_read_minutes": p.get("estimated_read_minutes", 3),
         "view_count": p.get("view_count", 0),
-    } for p in posts]
+        "created_at": p.get("created_at", ""),
+        "author": p.get("author", "CrossWave Team"),
+    }
+
+
+@app.get("/api/posts/popular")
+async def api_popular():
+    posts = get_popular_posts(limit=6)
+    return [_post_to_json(p) for p in posts]
+
+
+@app.get("/api/posts/recent")
+async def api_recent(limit: int = 8, tag: str = ""):
+    if tag:
+        posts = get_posts_by_tag(tag, limit=limit)
+    else:
+        from app.database import get_all_posts as _gap
+        posts = _gap(limit=limit)
+    return [_post_to_json(p) for p in posts]
+
+
+@app.get("/api/posts/by-tag/{tag}")
+async def api_by_tag(tag: str, limit: int = 12):
+    posts = get_posts_by_tag(tag, limit=limit)
+    return [_post_to_json(p) for p in posts]
+
+
+@app.get("/api/tags")
+async def api_tags():
+    from app.database import get_all_tags as _gat
+    tags = _gat()
+    return {"tags": tags, "total": len(tags)}
 
 
 @app.get("/popular", response_class=HTMLResponse)
