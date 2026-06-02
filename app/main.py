@@ -136,6 +136,21 @@ async def blog_detail(slug: str, request: Request):
     })
 
 
+@app.get("/topic/{tag}", response_class=HTMLResponse)
+async def topic_cluster(tag: str, request: Request):
+    """Topic cluster page — all posts for a tag with tag info."""
+    posts = get_posts_by_tag(tag, limit=50)
+    all_tags = get_all_tags()
+    popular = get_popular_posts(limit=5)
+    return templates.TemplateResponse(request, "topic.html", {
+        "tag": tag,
+        "posts": posts,
+        "total": len(posts),
+        "all_tags": all_tags,
+        "popular": popular,
+    })
+
+
 @app.get("/api/posts/popular")
 async def api_popular():
     posts = get_popular_posts(limit=6)

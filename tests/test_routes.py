@@ -243,3 +243,53 @@ def test_view_count_increments_on_detail(seeded):
     client.get("/blog/seeded-post")
     after = get_post_by_slug("seeded-post")["view_count"]
     assert after >= before + 1
+
+
+def test_topic_page_found(seeded):
+    resp = client.get("/topic/test")
+    assert resp.status_code == 200
+    assert "Seeded Post" in resp.text
+    assert "1 article" in resp.text.lower()
+
+
+def test_topic_page_no_match():
+    resp = client.get("/topic/nonexistent")
+    assert resp.status_code == 200
+    assert "No articles" in resp.text
+
+
+def test_topic_page_has_schema(seeded):
+    resp = client.get("/topic/test")
+    assert resp.status_code == 200
+    assert "CollectionPage" in resp.text
+
+
+def test_blog_detail_has_article_schema(seeded):
+    resp = client.get("/blog/seeded-post")
+    assert resp.status_code == 200
+    assert "Article" in resp.text
+    # seeded post has faq data, so FAQPage schema should be present
+    assert "FAQPage" in resp.text
+
+
+def test_blog_detail_has_faq_schema():
+    """Post with FAQ data should render FAQPage schema."""
+    from app.generator import BlogPost
+    post = BlogPost(
+        title="FAQ Post",
+        slug="faq-post",
+        meta_description="FAQ test",
+        content_html="<p>test</p>",
+        headings=[],
+        word_count=50,
+        estimated_read_minutes=1,
+        tags=["faq"],
+        faq=[{"question": "Q1?", "answer": "A1."}],
+        usage={},
+    )
+    save_post(post)
+    resp = client.get("/blog/faq-post")
+    assert resp.status_code == 200
+    assert "FAQPage" in resp.text
+    assert "Q1?" in resp.text
+    assert "BreadcrumbList" in resp.text

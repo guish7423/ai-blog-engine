@@ -29,6 +29,7 @@ def init_db():
             content_html TEXT NOT NULL,
             headings    TEXT DEFAULT '[]',
             tags        TEXT DEFAULT '[]',
+            faq         TEXT DEFAULT '[]',
             word_count  INTEGER DEFAULT 0,
             read_time   INTEGER DEFAULT 1,
             author      TEXT DEFAULT 'CrossWave Team',
@@ -36,7 +37,7 @@ def init_db():
             created_at  TEXT DEFAULT (datetime('now'))
         )
     """)
-    for col, coltype in [("author", "TEXT DEFAULT 'CrossWave Team'"), ("view_count", "INTEGER DEFAULT 0")]:
+    for col, coltype in [("author", "TEXT DEFAULT 'CrossWave Team'"), ("view_count", "INTEGER DEFAULT 0"), ("faq", "TEXT DEFAULT '[]'")]:
         try:
             conn.execute(f"ALTER TABLE blog_posts ADD COLUMN {col} {coltype}")
         except sqlite3.OperationalError:
@@ -50,8 +51,8 @@ def save_post(post) -> int:
     conn = get_connection()
     cur = conn.execute(
         """INSERT OR REPLACE INTO blog_posts
-           (title, slug, meta_description, content_html, headings, tags, word_count, read_time, author)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           (title, slug, meta_description, content_html, headings, tags, faq, word_count, read_time, author)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             post.title,
             post.slug,
@@ -59,6 +60,7 @@ def save_post(post) -> int:
             post.content_html,
             json.dumps(post.headings),
             json.dumps(post.tags),
+            json.dumps(post.faq) if hasattr(post, 'faq') and post.faq else '[]',
             post.word_count,
             post.estimated_read_minutes,
             post.author,
@@ -69,6 +71,15 @@ def save_post(post) -> int:
     return cur.lastrowid or 0
 
 
+def _parse_post_row(row: sqlite3.Row) -> dict:
+    """Convert a sqlite3.Row to a dict, parsing JSON fields."""
+    d = dict(row)
+    d["headings"] = json.loads(d.get("headings", "[]"))
+    d["tags"] = json.loads(d.get("tags", "[]"))
+    d["faq"] = json.loads(d.get("faq", "[]"))
+    return d
+
+
 def get_all_posts(limit: int = 20, offset: int = 0) -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
@@ -76,11 +87,7 @@ def get_all_posts(limit: int = 20, offset: int = 0) -> list[dict]:
         (limit, offset),
     ).fetchall()
     conn.close()
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+    return [_parse_post_row(r) for r in rows]
 
 
 def get_post_by_slug(slug: str) -> Optional[dict]:
@@ -90,10 +97,7 @@ def get_post_by_slug(slug: str) -> Optional[dict]:
     ).fetchone()
     conn.close()
     if row:
-        d = dict(row)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-        return d
+        return _parse_post_row(row)
     return None
 
 
@@ -111,11 +115,7 @@ def get_all_posts_for_feed(limit: int = 50) -> list[dict]:
         (limit,),
     ).fetchall()
     conn.close()
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+    return [_parse_post_row(r) for r in rows]
 
 
 def init_newsletter():
@@ -139,11 +139,7 @@ def search_posts(keyword: str, limit: int = 20) -> list[dict]:
         (pattern, pattern, pattern, limit),
     ).fetchall()
     conn.close()
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+    return [_parse_post_row(r) for r in rows]
 
 
 def get_posts_by_tag(tag: str, limit: int = 20) -> list[dict]:
@@ -154,11 +150,7 @@ def get_posts_by_tag(tag: str, limit: int = 20) -> list[dict]:
         (pattern, limit),
     ).fetchall()
     conn.close()
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+    return [_parse_post_row(r) for r in rows]
 
 
 def get_related_posts(slug: str, tags: list[str], limit: int = 3) -> list[dict]:
@@ -172,11 +164,7 @@ def get_related_posts(slug: str, tags: list[str], limit: int = 3) -> list[dict]:
         (*params, limit),
     ).fetchall()
     conn.close()
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+    return [_parse_post_row(r) for r in rows]
 
 
 def get_posts_by_author(author: str, limit: int = 20) -> list[dict]:
@@ -186,11 +174,7 @@ def get_posts_by_author(author: str, limit: int = 20) -> list[dict]:
         (author, limit),
     ).fetchall()
     conn.close()
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-    return [dict(r) for r in rows]
+    return [_parse_post_row(r) for r in rows]
 
 
 def increment_view_count(slug: str):
@@ -207,13 +191,7 @@ def get_popular_posts(limit: int = 5) -> list[dict]:
         (limit,),
     ).fetchall()
     conn.close()
-    result = []
-    for r in rows:
-        d = dict(r)
-        d["headings"] = json.loads(d.get("headings", "[]"))
-        d["tags"] = json.loads(d.get("tags", "[]"))
-        result.append(d)
-    return result
+    return [_parse_post_row(r) for r in rows]
 
 
 def get_all_tags() -> list[str]:

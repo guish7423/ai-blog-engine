@@ -13,6 +13,44 @@
 <link rel="canonical" href="https://blog.crosswave.app/blog/{{ post.slug }}">
 <link rel="alternate" type="application/rss+xml" title="CrossWave Blog RSS" href="/feed.xml">
 <link rel="stylesheet" href="/static/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ post.title }}",
+  "description": "{{ post.meta_description[:160] }}",
+  "author": {"@type": "Person", "name": "{{ post.author }}"},
+  "datePublished": "{{ post.created_at[:10] }}",
+  "publisher": {"@type": "Organization", "name": "CrossWave"}
+}
+</script>
+{% if post.faq and post.faq|length > 0 %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+  {% for item in post.faq %}
+    {
+      "@type": "Question",
+      "name": "{{ item.question | escape }}",
+      "acceptedAnswer": {"@type": "Answer", "text": "{{ item.answer | escape }}"}
+    }{% if not loop.last %},{% endif %}
+  {% endfor %}
+  ]
+}
+</script>
+{% endif %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Blog", "item": "https://blog.crosswave.app/blog"},
+    {"@type": "ListItem", "position": 2, "name": "{{ post.title }}", "item": "https://blog.crosswave.app/blog/{{ post.slug }}"}
+  ]
+}
+</script>
 <style>
   .post-layout { display: flex; gap: 2rem; }
   .post-main { flex: 1; min-width: 0; }
@@ -80,7 +118,7 @@
           </div>
           <div class="post-tags">
             {% for tag in post.tags %}
-            <a href="/blog?tag={{ tag }}" class="tag">{{ tag }}</a>
+            <a href="/topic/{{ tag }}" class="tag">{{ tag }}</a>
             {% endfor %}
           </div>
         </div>
@@ -144,7 +182,7 @@
         <h3>🏷️ Tags</h3>
         <div class="tag-cloud">
           {% for tag in all_tags %}
-          <a href="/blog?tag={{ tag }}" class="tag">{{ tag }}</a>
+          <a href="/topic/{{ tag }}" class="tag">{{ tag }}</a>
           {% endfor %}
         </div>
       </div>

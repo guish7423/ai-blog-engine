@@ -246,3 +246,48 @@ def test_get_popular_posts():
     assert len(popular) >= 1
     assert popular[0]["slug"] == "most-viewed"
     assert popular[0]["view_count"] >= 2
+
+
+def test_faq_persistence():
+    """FAQ data should be saved to DB and returned correctly."""
+    post = BlogPost(
+        title="FAQ Post",
+        slug="faq-post",
+        meta_description="",
+        content_html="<p>faq</p>",
+        headings=[],
+        word_count=50,
+        estimated_read_minutes=1,
+        tags=["faq"],
+        faq=[{"question": "What is X?", "answer": "X is Y."}, {"question": "How does it work?", "answer": "It works like Z."}],
+        usage={},
+    )
+    pid = save_post(post)
+    assert pid > 0
+
+    retrieved = get_post_by_slug("faq-post")
+    assert retrieved is not None
+    assert len(retrieved["faq"]) == 2
+    assert retrieved["faq"][0]["question"] == "What is X?"
+    assert retrieved["faq"][1]["answer"] == "It works like Z."
+
+
+def test_topic_page_data():
+    """Posts by tag should return posts with correct tag."""
+    p1 = BlogPost(title="AI Post", slug="ai-post", meta_description="", content_html="<p>ai</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["ai", "ml"], faq=[], usage={})
+    p2 = BlogPost(title="Web Post", slug="web-post", meta_description="", content_html="<p>web</p>",
+                  headings=[], word_count=10, estimated_read_minutes=1, tags=["web"], faq=[], usage={})
+    save_post(p1)
+    save_post(p2)
+
+    ai_posts = get_posts_by_tag("ai")
+    assert len(ai_posts) == 1
+    assert ai_posts[0]["slug"] == "ai-post"
+
+    web_posts = get_posts_by_tag("web")
+    assert len(web_posts) == 1
+    assert web_posts[0]["slug"] == "web-post"
+
+    ml_posts = get_posts_by_tag("ml")
+    assert len(ml_posts) == 1
